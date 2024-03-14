@@ -1,0 +1,18 @@
+{
+	"containerOverrides": [{
+		"environment": [{
+				"name": "FORMAT",
+				"value": "audio"
+			},
+			{
+				"name": "REFID",
+				"value": "20f8da26e268418ead4aa2365f816a08"
+			},
+			{
+				"name": "RIGHTS_IDS",
+				"value": "1,8"
+			}
+		],
+		"name": "digitized_av_packaging"
+	}]
+}

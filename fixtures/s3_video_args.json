@@ -1,0 +1,18 @@
+{
+	"containerOverrides": [{
+		"environment": [{
+				"name": "FORMAT",
+				"value": "video"
+			},
+			{
+				"name": "AWS_SOURCE_BUCKET",
+				"value": "rac-dev-av-upload-video"
+			},
+			{
+				"name": "SOURCE_FILENAME",
+				"value": "123456789.tar.gz"
+			}
+		],
+		"name": "digitized_av_validation"
+	}]
+}

@@ -1,0 +1,37 @@
+dist: bionic
+language: python
+python:
+  - "3.10"
+cache: pip
+env:
+  global:
+    - LAMBDA_NAME: digitized_av_trigger
+
+before_script:
+  - pip install tox
+
+script: tox
+
+before_deploy:
+  - pip install awscli
+  - if [ ! -d deploy_scripts ]; then git clone https://github.com/RockefellerArchiveCenter/deploy_scripts.git; fi
+  - sudo deploy_scripts/make_zip_lambda.sh ${LAMBDA_NAME} src/handle_digitized_av_trigger.py
+
+deploy:
+  - provider: script
+    script: >-
+      bash deploy_scripts/upload_file_to_s3.sh ${LAMBDA_NAME}.zip rac-dev-lambda &&
+      bash deploy_scripts/deploy_package_lambda.sh ${LAMBDA_NAME}
+    skip_cleanup: true
+    on:
+      branch: development
+  - provider: script
+    script: >-
+      bash deploy_scripts/upload_file_to_s3.sh ${LAMBDA_NAME}.zip rac-prod-lambda &&
+      bash deploy_scripts/deploy_package_lambda.sh ${LAMBDA_NAME}
+    skip_cleanup: true
+    on:
+      branch: base
+
+notifications:
+  email: false
