@@ -5,7 +5,7 @@ python:
 cache: pip
 env:
   global:
-    - LAMBDA_NAME: digitized_av_trigger
+    - LAMBDA_NAME: digitized_image_trigger
 
 before_script:
   - pip install tox
@@ -15,7 +15,7 @@ script: tox
 before_deploy:
   - pip install awscli
   - if [ ! -d deploy_scripts ]; then git clone https://github.com/RockefellerArchiveCenter/deploy_scripts.git; fi
-  - sudo deploy_scripts/make_zip_lambda.sh ${LAMBDA_NAME} src/handle_digitized_av_trigger.py
+  - sudo deploy_scripts/make_zip_lambda.sh ${LAMBDA_NAME} src/handle_digitized_image_trigger.py
 
 deploy:
   - provider: script

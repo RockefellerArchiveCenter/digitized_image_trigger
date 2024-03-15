@@ -22,7 +22,7 @@
             },
             "service": {
               "Type": "String",
-              "Value": "digitized_av_qc"
+              "Value": "digitized_image_qc"
             },
             "outcome": {
               "Type": "String",

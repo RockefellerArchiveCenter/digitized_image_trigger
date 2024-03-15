@@ -16,8 +16,10 @@ FORMAT_MAP = {
     'rac-prod-av-upload-video': 'video',
     'rac-dev-av-upload-video': 'video',
 }
-VALIDATION_SERVICE = 'digitized_av_validation'
-QC_SERVICE = 'digitized_av_qc'
+VALIDATION_SERVICE = 'digitized_image_validation'
+QC_SERVICE = 'digitized_image_qc'
+PACKAGING_SERVICE = 'digitized_image_packaging'
+VALIDATION_SERVICE = 'digitized_image_validation'
 
 full_config_path = f"/{environ.get('ENV')}/{environ.get('APP_CONFIG_PATH')}"
 
@@ -68,7 +70,7 @@ def run_task(ecs_client, config, task_definition, environment):
         },
         taskDefinition=task_definition,
         count=1,
-        startedBy='lambda/digitized_av_trigger',
+        startedBy='lambda/digitized_image_trigger',
         overrides={
             'containerOverrides': [
                 {
@@ -111,7 +113,7 @@ def handle_s3_object_put(config, ecs_client, event):
     return run_task(
         ecs_client,
         config,
-        'digitized_av_validation',
+        VALIDATION_SERVICE,
         environment)
 
 
@@ -145,7 +147,7 @@ def handle_qc_approval(config, ecs_client, attributes):
     return run_task(
         ecs_client,
         config,
-        'digitized_av_packaging',
+        PACKAGING_SERVICE,
         environment)
 
 
