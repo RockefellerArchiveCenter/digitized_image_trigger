@@ -10,12 +10,6 @@ import boto3
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-FORMAT_MAP = {
-    'rac-prod-av-upload-audio': 'audio',
-    'rac-dev-av-upload-audio': 'audio',
-    'rac-prod-av-upload-video': 'video',
-    'rac-dev-av-upload-video': 'video',
-}
 VALIDATION_SERVICE = 'digitized_image_validation'
 QC_SERVICE = 'digitized_image_qc'
 PACKAGING_SERVICE = 'digitized_image_packaging'
@@ -87,19 +81,13 @@ def handle_s3_object_put(config, ecs_client, event):
 
     bucket = event['Records'][0]['s3']['bucket']['name']
     object = event['Records'][0]['s3']['object']['key']
-    format = FORMAT_MAP[bucket]
 
     logger.info(
-        "Running validation task for event from object {} in bucket {} with format {}".format(
+        "Running validation task for event from object {} in bucket {}".format(
             object,
-            bucket,
-            format))
+            bucket))
 
     environment = [
-        {
-            "name": "FORMAT",
-            "value": format
-        },
         {
             "name": "AWS_SOURCE_BUCKET",
             "value": bucket
@@ -120,20 +108,14 @@ def handle_s3_object_put(config, ecs_client, event):
 def handle_qc_approval(config, ecs_client, attributes):
     """Handles QC approval of package."""
 
-    format = attributes['format']['Value']
     refid = attributes['refid']['Value']
     rights_ids = attributes['rights_ids']['Value']
 
     logger.info(
-        "Running packaging task for event from object {} with format {}".format(
-            refid,
-            format))
+        "Running packaging task for event from object {}".format(
+            refid))
 
     environment = [
-        {
-            "name": "FORMAT",
-            "value": format
-        },
         {
             "name": "REFID",
             "value": refid
