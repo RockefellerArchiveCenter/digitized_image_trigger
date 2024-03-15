@@ -1,15 +1,15 @@
-# digitized_av_trigger
+# digitized_image_trigger
 Invokes AWS Elastic Container Service (ECS) tasks when objects are created in S3 buckets.
 
-[![Build Status](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_av_trigger.svg?branch=base)](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_av_trigger)
+[![Build Status](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_image_trigger.svg?branch=base)](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_image_trigger)
 
 ## Getting Started
 
 With [git](https://git-scm.com/) installed, pull down the source code and move into the newly created directory:
 
 ```
-git clone https://github.com/RockefellerArchiveCenter/digitized_av_trigger.git
-cd digitized_av_trigger
+git clone https://github.com/RockefellerArchiveCenter/digitized_image_trigger.git
+cd digitized_image_trigger
 ```
 
 ## Usage
@@ -32,13 +32,13 @@ SNS messages are expected have the following attributes:
 
 The script takes the following actions:
 - S3 events:
-    - PutObject events trigger the `digitized_av_validation` ECS task.
+    - PutObject events trigger the `digitized_image_validation` ECS task.
 - SNS events:
     - from `validation` service:
-        -  messages with outcome `SUCCESS` scale up `digitized_av_qc` ECS service if necessary.
+        -  messages with outcome `SUCCESS` scale up `digitized_image_qc` ECS service if necessary.
     - from `qc` service:
-        -  messages with outcome `SUCCESS` trigger the `digitized_av_packaging` ECS task.
-        -  messages with outcome `COMPLETE` scale down `digitized_av_qc` ECS service.
+        -  messages with outcome `SUCCESS` trigger the `digitized_image_packaging` ECS task.
+        -  messages with outcome `COMPLETE` scale down `digitized_image_qc` ECS service.
 
 ## License
 
