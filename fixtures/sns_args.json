@@ -1,9 +1,6 @@
 {
 	"containerOverrides": [{
-		"environment": [{
-				"name": "FORMAT",
-				"value": "video"
-			},
+		"environment": [
 			{
 				"name": "REFID",
 				"value": "20f8da26e268418ead4aa2365f816a08"

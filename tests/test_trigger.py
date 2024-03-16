@@ -8,7 +8,7 @@ import boto3
 from moto import mock_ecs, mock_ssm
 from moto.core import DEFAULT_ACCOUNT_ID
 
-from digitized_image_trigger.src.handle_digitized_image_trigger import get_config, lambda_handler
+from src.handle_digitized_image_trigger import get_config, lambda_handler
 
 
 @mock_ecs
@@ -33,19 +33,16 @@ def test_s3_args(mock_config):
         ],
     )
 
-    for fixture, expected_args in [
-            ('s3_put_audio.json', 's3_audio_args.json'),
-            ('s3_put_video.json', 's3_video_args.json')]:
-        with open(Path('fixtures', fixture), 'r') as df:
-            message = json.load(df)
-            response = json.loads(lambda_handler(message, None))
-            assert len(response['tasks']) == 1
-            assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
-            assert response['tasks'][0][
-                'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_validation:1"
-            with open(Path('fixtures', expected_args), 'r') as af:
-                args = json.load(af)
-                assert response['tasks'][0]['overrides'] == args
+    with open(Path('fixtures', 's3_put.json'), 'r') as df:
+        message = json.load(df)
+        response = json.loads(lambda_handler(message, None))
+        assert len(response['tasks']) == 1
+        assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
+        assert response['tasks'][0][
+            'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_validation:1"
+        with open(Path('fixtures', 's3_args.json'), 'r') as af:
+            args = json.load(af)
+            assert response['tasks'][0]['overrides'] == args
 
 
 @mock_ecs
@@ -75,27 +72,23 @@ def test_sns_args(mock_config):
         serviceName='digitized_image_qc'
     )
 
-    for fixture, expected_args in [
-            ('sns_audio_accept.json', 'sns_audio_args.json'),
-            ('sns_video_accept.json', 'sns_video_args.json')]:
-        with open(Path('fixtures', fixture), 'r') as df:
-            message = json.load(df)
-            response = json.loads(lambda_handler(message, None))
-            assert len(response['tasks']) == 1
-            assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
-            assert response['tasks'][0][
-                'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_packaging:1"
-            with open(Path('fixtures', expected_args), 'r') as af:
-                args = json.load(af)
-                assert response['tasks'][0]['overrides'] == args
+    with open(Path('fixtures', 'sns_accept.json'), 'r') as df:
+        message = json.load(df)
+        response = json.loads(lambda_handler(message, None))
+        assert len(response['tasks']) == 1
+        assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
+        assert response['tasks'][0][
+            'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_packaging:1"
+        with open(Path('fixtures', 'sns_args.json'), 'r') as af:
+            args = json.load(af)
+            assert response['tasks'][0]['overrides'] == args
 
-    for fixture in ['sns_audio_reject.json', 'sns_audio_reject.json']:
-        with open(Path('fixtures', fixture), 'r') as df:
-            message = json.load(df)
-            response = json.loads(lambda_handler(message, None))
-            assert 'Nothing to do for SNS event:' in response
+    with open(Path('fixtures', 'sns_reject.json'), 'r') as df:
+        message = json.load(df)
+        response = json.loads(lambda_handler(message, None))
+        assert 'Nothing to do for SNS event:' in response
 
-    with open(Path('fixtures', 'sns_video_valid.json'), 'r') as df:
+    with open(Path('fixtures', 'sns_valid.json'), 'r') as df:
         created = client.describe_services(services=['digitized_image_qc'])
         assert created['services'][0]['desiredCount'] == 0
 

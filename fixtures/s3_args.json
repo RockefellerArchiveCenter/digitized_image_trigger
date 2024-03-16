@@ -1,12 +1,9 @@
 {
 	"containerOverrides": [{
-		"environment": [{
-				"name": "FORMAT",
-				"value": "video"
-			},
+		"environment": [
 			{
 				"name": "AWS_SOURCE_BUCKET",
-				"value": "rac-dev-av-upload-video"
+				"value": "rac-dev-image-upload"
 			},
 			{
 				"name": "SOURCE_FILENAME",
