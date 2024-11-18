@@ -1,8 +1,6 @@
 # digitized_image_trigger
 Invokes AWS Elastic Container Service (ECS) tasks when objects are created in S3 buckets.
 
-[![Build Status](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_image_trigger.svg?branch=base)](https://app.travis-ci.com/RockefellerArchiveCenter/digitized_image_trigger)
-
 ## Getting Started
 
 With [git](https://git-scm.com/) installed, pull down the source code and move into the newly created directory:
@@ -18,7 +16,7 @@ This repository is intended to be deployed as a Lambda script in AWS infrastruct
 
 ### Expected Message Format
 
-The script is designed to consume messages from an AWS S3 Bucket or an AWS Simple Notifications Service (SNS) queue. 
+The script is designed to consume messages from an AWS S3 Bucket or an AWS Simple Notifications Service (SNS) queue.
 
 SNS messages are expected have the following attributes:
 - `format` - the format of the package (audio or video)
