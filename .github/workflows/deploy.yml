@@ -47,5 +47,5 @@ jobs:
 
       - name: Deploy lambda package
         run: aws lambda update-function-code
-          --function-name arn:aws:lambda:$AWS_REGION:${{ secrets.AWS_ACCOUNT_ID }}:function:$LAMBDA_NAME
+          --function-name arn:aws:lambda:${{ secrets.AWS_REGION }}:${{ secrets.AWS_LAMBDA_ACCOUNT_ID }}:function:$LAMBDA_NAME
           --zip-file fileb://$LAMBDA_NAME.zip
