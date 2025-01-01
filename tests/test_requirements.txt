@@ -4,22 +4,22 @@
 #
 #    pip-compile --output-file=tests/test_requirements.txt tests/test_requirements.in
 #
-boto3==1.35.72
+boto3==1.35.90
     # via
     #   -r tests/test_requirements.in
     #   moto
-botocore==1.35.72
+botocore==1.35.90
     # via
     #   boto3
     #   moto
     #   s3transfer
-certifi==2024.8.30
+certifi==2024.12.14
     # via requests
 cffi==1.17.1
     # via cryptography
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via requests
-coverage==7.6.8
+coverage==7.6.10
     # via -r tests/test_requirements.in
 cryptography==44.0.0
     # via moto
@@ -27,7 +27,7 @@ idna==3.10
     # via requests
 iniconfig==2.0.0
     # via pytest
-jinja2==3.1.4
+jinja2==3.1.5
     # via moto
 jmespath==1.0.1
     # via
@@ -37,7 +37,7 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   werkzeug
-moto==5.0.22
+moto==5.0.25
     # via -r tests/test_requirements.in
 packaging==24.2
     # via pytest
@@ -61,9 +61,9 @@ responses==0.25.3
     # via moto
 s3transfer==0.10.4
     # via boto3
-six==1.16.0
+six==1.17.0
     # via python-dateutil
-urllib3==2.2.3
+urllib3==2.3.0
     # via
     #   botocore
     #   requests
