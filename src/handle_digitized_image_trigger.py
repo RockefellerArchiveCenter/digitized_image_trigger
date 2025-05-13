@@ -58,7 +58,7 @@ def run_task(ecs_client, config, task_definition, environment):
         networkConfiguration={
             'awsvpcConfiguration': {
                 'subnets': [config.get('ECS_SUBNET')],
-                'securityGroups': [config.get('ECS_SUBNET')],
+                'securityGroups': [config.get('ECS_SECURITY_GROUP')],
                 'assignPublicIp': 'DISABLED'
             }
         },
