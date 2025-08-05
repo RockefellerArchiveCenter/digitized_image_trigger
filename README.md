@@ -34,6 +34,7 @@ The script takes the following actions:
 - SNS events:
     - from `validation` service:
         -  messages with outcome `SUCCESS` scale up `digitized_image_qc` ECS service if necessary.
+           A command to discover the validated package is executed in the container.
     - from `qc` service:
         -  messages with outcome `SUCCESS` trigger the `digitized_image_packaging` ECS task.
         -  messages with outcome `COMPLETE` scale down `digitized_image_qc` ECS service.
