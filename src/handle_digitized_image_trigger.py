@@ -137,15 +137,39 @@ def handle_validation_approval(config, ecs_client):
     """Scales up ECS Service when items are waiting for QC"""
     logger.info("Scaling up QC service.")
 
-    service = ecs_client.describe_services(
+    resp = ecs_client.describe_services(
         cluster=config.get('ECS_CLUSTER'),
         services=[config.get('QC_ECS_SERVICE')])
-    if (len(service['services']) and service['services']
+    if (len(resp['services']) and resp['services']
             [0]['desiredCount'] < 1):
-        return ecs_client.update_service(
+        resp = ecs_client.update_service(
             cluster=config.get('ECS_CLUSTER'),
             service=config.get('QC_ECS_SERVICE'),
             desiredCount=1)
+        service = resp['service']
+    else:
+        service = resp['services'][0]
+
+    task_arn = ecs_client.list_tasks(
+        cluster=service['clusterArn'],
+        serviceName=service['serviceName'])['taskArns'][0]
+
+    return execute_service_command(
+        ecs_client,
+        service['clusterArn'],
+        'python manage.py discover_packages',
+        False,
+        task_arn)
+
+
+def execute_service_command(
+        ecs_client, cluster, command, interactive, task_arn):
+    """Executes a command in a running service."""
+    return ecs_client.execute_command(
+        cluster=cluster,
+        command=command,
+        interactive=interactive,
+        task=task_arn)
 
 
 def handle_qc_complete(config, ecs_client):
