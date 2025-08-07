@@ -103,7 +103,7 @@ def test_sns_args(mock_execute_command, mock_config):
             ANY,
             created['services'][0]['clusterArn'],
             'python manage.py discover_packages',
-            False,
+            True,
             ANY)
 
     with open(Path('fixtures', 'sns_complete.json'), 'r') as df:
