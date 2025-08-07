@@ -171,7 +171,7 @@ def handle_validation_approval(config, ecs_client):
         ecs_client,
         service['clusterArn'],
         'python manage.py discover_packages',
-        False,
+        True,
         task_arn)
 
     logger.info("Package discovery command executed.")
