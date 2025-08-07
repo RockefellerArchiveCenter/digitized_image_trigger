@@ -150,9 +150,22 @@ def handle_validation_approval(config, ecs_client):
         logger.info("QC service already running.")
         service = resp['services'][0]
 
-    task_arn = ecs_client.list_tasks(
-        cluster=service['clusterArn'],
-        serviceName=service['serviceName'])['taskArns'][0]
+    waiter = ecs_client.get_waiter('services_stable')
+    waiter.wait(
+        cluster=config.get('ECS_CLUSTER'),
+        services=[config.get('QC_ECS_SERVICE')],
+        WaiterConfig={
+            'Delay': 15,  # Poll every 15 seconds
+            # Maximum 40 attempts (10 minutes total wait)
+            'MaxAttempts': 40
+        }
+    )
+
+    tasks = ecs_client.list_tasks(
+        cluster=config.get('ECS_CLUSTER'),
+        serviceName=config.get('QC_ECS_SERVICE'))
+
+    task_arn = tasks['taskArns'][0]
 
     execute_service_command(
         ecs_client,
