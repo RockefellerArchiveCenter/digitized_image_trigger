@@ -155,15 +155,15 @@ def handle_validation_approval(config, ecs_client):
         cluster=config.get('ECS_CLUSTER'),
         services=[config.get('QC_ECS_SERVICE')],
         WaiterConfig={
-            'Delay': 15,  # Poll every 15 seconds
-            # Maximum 40 attempts (10 minutes total wait)
-            'MaxAttempts': 40
+            'Delay': 5,  # Poll every 5 seconds
+            'MaxAttempts': 30  # Maximum 30 attempts
         }
     )
 
     tasks = ecs_client.list_tasks(
         cluster=config.get('ECS_CLUSTER'),
-        serviceName=config.get('QC_ECS_SERVICE'))
+        serviceName=config.get('QC_ECS_SERVICE'),
+        desiredStatus='RUNNING')
 
     task_arn = tasks['taskArns'][0]
 
