@@ -115,7 +115,7 @@ def test_sns_args(mock_execute_command, mock_config):
 
         message = json.load(df)
         response = json.loads(lambda_handler(message, None))
-        assert response['service']['desiredCount'] == 0
+        assert response == 'QC service scaled down.'
 
 
 @mock_aws

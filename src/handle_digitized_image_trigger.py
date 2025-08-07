@@ -175,6 +175,7 @@ def handle_validation_approval(config, ecs_client):
         task_arn)
 
     logger.info("Package discovery command executed.")
+    return "QC service started and package discovered."
 
 
 def execute_service_command(
@@ -191,10 +192,12 @@ def handle_qc_complete(config, ecs_client):
     """Scales down ECS Service when nothing is left to QC"""
     logger.info("Scaling down QC service.")
 
-    return ecs_client.update_service(
+    ecs_client.update_service(
         cluster=config.get('ECS_CLUSTER'),
         service=config.get('QC_ECS_SERVICE'),
         desiredCount=0)
+
+    return "QC service scaled down."
 
 
 def lambda_handler(event, context):
