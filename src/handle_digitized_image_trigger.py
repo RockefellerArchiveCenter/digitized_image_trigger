@@ -133,8 +133,10 @@ def handle_qc_approval(config, ecs_client, attributes):
         environment)
 
 
-def handle_validation_approval(config, ecs_client):
+def handle_validation_approval(config, ecs_client, attributes):
     """Scales up ECS Service when items are waiting for QC"""
+    refid = attributes['refid']['Value']
+
     resp = ecs_client.describe_services(
         cluster=config.get('ECS_CLUSTER'),
         services=[config.get('QC_ECS_SERVICE')])
@@ -170,7 +172,7 @@ def handle_validation_approval(config, ecs_client):
     execute_service_command(
         ecs_client,
         service['clusterArn'],
-        'python manage.py discover_packages',
+        f'python manage.py discover_packages {refid}',
         True,
         task_arn)
 
@@ -234,7 +236,8 @@ def lambda_handler(event, context):
         if (attributes['service']['Value'] == VALIDATION_SERVICE):
             if attributes['outcome']['Value'] == 'SUCCESS':
                 """Handles QC approval events."""
-                response = handle_validation_approval(config, ecs_client)
+                response = handle_validation_approval(
+                    config, ecs_client, attributes)
 
         if (attributes['service']['Value'] == QC_SERVICE):
             if attributes['outcome']['Value'] == 'SUCCESS':
