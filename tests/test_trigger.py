@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import boto3
 from moto import mock_aws
@@ -48,7 +48,8 @@ def test_s3_args(mock_config):
 
 @mock_aws
 @patch('src.handle_digitized_image_trigger.get_config')
-def test_sns_args(mock_config):
+@patch('src.handle_digitized_image_trigger.execute_service_command')
+def test_sns_args(mock_execute_command, mock_config):
     test_cluster_name = "default"
     mock_config.return_value = {
         "AWS_REGION": "us-east-1",
@@ -95,8 +96,15 @@ def test_sns_args(mock_config):
         assert created['services'][0]['desiredCount'] == 0
 
         message = json.load(df)
-        response = json.loads(lambda_handler(message, None))
-        assert response['service']['desiredCount'] == 1
+        json.loads(lambda_handler(message, None))
+        updated = client.describe_services(services=['digitized_image_qc'])
+        assert updated['services'][0]['desiredCount'] == 1
+        mock_execute_command.assert_called_once_with(
+            ANY,
+            created['services'][0]['clusterArn'],
+            'python manage.py discover_packages 20f8da26e268418ead4aa2365f816a08',
+            True,
+            ANY)
 
     with open(Path('fixtures', 'sns_complete.json'), 'r') as df:
         client.update_service(
@@ -107,7 +115,7 @@ def test_sns_args(mock_config):
 
         message = json.load(df)
         response = json.loads(lambda_handler(message, None))
-        assert response['service']['desiredCount'] == 0
+        assert response == 'QC service scaled down.'
 
 
 @mock_aws

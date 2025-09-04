@@ -133,29 +133,73 @@ def handle_qc_approval(config, ecs_client, attributes):
         environment)
 
 
-def handle_validation_approval(config, ecs_client):
+def handle_validation_approval(config, ecs_client, attributes):
     """Scales up ECS Service when items are waiting for QC"""
-    logger.info("Scaling up QC service.")
+    refid = attributes['refid']['Value']
 
-    service = ecs_client.describe_services(
+    resp = ecs_client.describe_services(
         cluster=config.get('ECS_CLUSTER'),
         services=[config.get('QC_ECS_SERVICE')])
-    if (len(service['services']) and service['services']
+    if (len(resp['services']) and resp['services']
             [0]['desiredCount'] < 1):
-        return ecs_client.update_service(
+        logger.info("Scaling up QC service.")
+        resp = ecs_client.update_service(
             cluster=config.get('ECS_CLUSTER'),
             service=config.get('QC_ECS_SERVICE'),
             desiredCount=1)
+        service = resp['service']
+    else:
+        logger.info("QC service already running.")
+        service = resp['services'][0]
+
+    waiter = ecs_client.get_waiter('services_stable')
+    waiter.wait(
+        cluster=config.get('ECS_CLUSTER'),
+        services=[config.get('QC_ECS_SERVICE')],
+        WaiterConfig={
+            'Delay': 5,  # Poll every 5 seconds
+            'MaxAttempts': 30  # Maximum 30 attempts
+        }
+    )
+
+    tasks = ecs_client.list_tasks(
+        cluster=config.get('ECS_CLUSTER'),
+        serviceName=config.get('QC_ECS_SERVICE'),
+        desiredStatus='RUNNING')
+
+    task_arn = tasks['taskArns'][0]
+
+    execute_service_command(
+        ecs_client,
+        service['clusterArn'],
+        f'python manage.py discover_packages {refid}',
+        True,
+        task_arn)
+
+    logger.info("Package discovery command executed.")
+    return "QC service started and package discovered."
+
+
+def execute_service_command(
+        ecs_client, cluster, command, interactive, task_arn):
+    """Executes a command in a running service."""
+    ecs_client.execute_command(
+        cluster=cluster,
+        command=command,
+        interactive=interactive,
+        task=task_arn)
 
 
 def handle_qc_complete(config, ecs_client):
     """Scales down ECS Service when nothing is left to QC"""
     logger.info("Scaling down QC service.")
 
-    return ecs_client.update_service(
+    ecs_client.update_service(
         cluster=config.get('ECS_CLUSTER'),
         service=config.get('QC_ECS_SERVICE'),
         desiredCount=0)
+
+    return "QC service scaled down."
 
 
 def lambda_handler(event, context):
@@ -192,7 +236,8 @@ def lambda_handler(event, context):
         if (attributes['service']['Value'] == VALIDATION_SERVICE):
             if attributes['outcome']['Value'] == 'SUCCESS':
                 """Handles QC approval events."""
-                response = handle_validation_approval(config, ecs_client)
+                response = handle_validation_approval(
+                    config, ecs_client, attributes)
 
         if (attributes['service']['Value'] == QC_SERVICE):
             if attributes['outcome']['Value'] == 'SUCCESS':
