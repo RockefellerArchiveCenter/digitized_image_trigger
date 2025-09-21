@@ -36,14 +36,21 @@ def test_s3_args(mock_config):
 
     with open(Path('fixtures', 's3_put.json'), 'r') as df:
         message = json.load(df)
-        response = json.loads(lambda_handler(message, None))
-        assert len(response['tasks']) == 1
-        assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
-        assert response['tasks'][0][
+        lambda_handler(message, None)
+
+        tasks = client.list_tasks(cluster=test_cluster_name)
+        assert len(tasks['taskArns']) == 1
+
+        task_response = client.describe_tasks(
+            cluster=test_cluster_name,
+            tasks=[tasks['taskArns'][0]])
+
+        assert task_response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
+        assert task_response['tasks'][0][
             'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_validation:1"
         with open(Path('fixtures', 's3_args.json'), 'r') as af:
             args = json.load(af)
-            assert response['tasks'][0]['overrides'] == args
+            assert task_response['tasks'][0]['overrides'] == args
 
 
 @mock_aws
@@ -77,26 +84,35 @@ def test_sns_args(mock_execute_command, mock_config):
 
     with open(Path('fixtures', 'sns_accept.json'), 'r') as df:
         message = json.load(df)
-        response = json.loads(lambda_handler(message, None))
-        assert len(response['tasks']) == 1
-        assert response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
-        assert response['tasks'][0][
+        lambda_handler(message, None)
+
+        tasks = client.list_tasks(cluster=test_cluster_name)
+        assert len(tasks['taskArns']) == 1
+
+        task_response = client.describe_tasks(
+            cluster=test_cluster_name,
+            tasks=[tasks['taskArns'][0]])
+
+        assert task_response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
+        assert task_response['tasks'][0][
             'taskDefinitionArn'] == f"arn:aws:ecs:us-east-1:{DEFAULT_ACCOUNT_ID}:task-definition/digitized_image_packaging:1"
         with open(Path('fixtures', 'sns_args.json'), 'r') as af:
             args = json.load(af)
-            assert response['tasks'][0]['overrides'] == args
+            assert task_response['tasks'][0]['overrides'] == args
 
     with open(Path('fixtures', 'sns_reject.json'), 'r') as df:
         message = json.load(df)
-        response = json.loads(lambda_handler(message, None))
-        assert 'Nothing to do for SNS event:' in response
+        lambda_handler(message, None)
+
+        tasks = client.list_tasks(cluster=test_cluster_name)
+        assert len(tasks['taskArns']) == 1
 
     with open(Path('fixtures', 'sns_valid.json'), 'r') as df:
         created = client.describe_services(services=['digitized_image_qc'])
         assert created['services'][0]['desiredCount'] == 0
 
         message = json.load(df)
-        json.loads(lambda_handler(message, None))
+        lambda_handler(message, None)
         updated = client.describe_services(services=['digitized_image_qc'])
         assert updated['services'][0]['desiredCount'] == 1
         mock_execute_command.assert_called_once_with(
@@ -114,8 +130,9 @@ def test_sns_args(mock_execute_command, mock_config):
         assert created['services'][0]['desiredCount'] == 1
 
         message = json.load(df)
-        response = json.loads(lambda_handler(message, None))
-        assert response == 'QC service scaled down.'
+        lambda_handler(message, None)
+        complete = client.describe_services(services=['digitized_image_qc'])
+        assert complete['services'][0]['desiredCount'] == 0
 
 
 @mock_aws
