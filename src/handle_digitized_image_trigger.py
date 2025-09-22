@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import json
 import logging
 import traceback
 from os import environ
@@ -52,7 +51,7 @@ def get_config(ssm_parameter_path):
 
 
 def run_task(ecs_client, config, task_definition, environment):
-    return ecs_client.run_task(
+    response = ecs_client.run_task(
         cluster=config.get('ECS_CLUSTER'),
         launchType='FARGATE',
         networkConfiguration={
@@ -74,6 +73,7 @@ def run_task(ecs_client, config, task_definition, environment):
             ]
         }
     )
+    return ", ".join([t['taskArn'] for t in response['tasks']])
 
 
 def handle_s3_object_put(config, ecs_client, event):
@@ -98,11 +98,12 @@ def handle_s3_object_put(config, ecs_client, event):
         }
     ]
 
-    return run_task(
+    task_id = run_task(
         ecs_client,
         config,
         VALIDATION_SERVICE,
         environment)
+    return f"Task {task_id} with definition {VALIDATION_SERVICE} started for package {object}."
 
 
 def handle_qc_approval(config, ecs_client, attributes):
@@ -126,11 +127,12 @@ def handle_qc_approval(config, ecs_client, attributes):
         }
     ]
 
-    return run_task(
+    task_id = run_task(
         ecs_client,
         config,
         PACKAGING_SERVICE,
         environment)
+    return f"Task {task_id} with definition {PACKAGING_SERVICE} started for package {refid}."
 
 
 def handle_validation_approval(config, ecs_client, attributes):
@@ -213,11 +215,11 @@ def lambda_handler(event, context):
     if event['Records'][0].get('s3'):
         """Handles events from S3 buckets."""
 
-        logger.info(f"Received S3 event {event}")
+        logger.info("Received S3 event")
 
         event_type = event['Records'][0]['eventName']
 
-        response = f'Nothing to do for S3 event: {event}'
+        response = 'Nothing to do for S3 event'
 
         if event_type in ['ObjectCreated:Put',
                           'ObjectCreated:CompleteMultipartUpload']:
@@ -227,11 +229,11 @@ def lambda_handler(event, context):
     elif event['Records'][0].get('Sns'):
         """Handles events from SNS."""
 
-        logger.info(f"Received SNS event {event}")
+        logger.info("Received SNS event")
 
         attributes = event['Records'][0]['Sns']['MessageAttributes']
 
-        response = f'Nothing to do for SNS event: {event}'
+        response = 'Nothing to do for SNS event'
 
         if (attributes['service']['Value'] == VALIDATION_SERVICE):
             if attributes['outcome']['Value'] == 'SUCCESS':
@@ -251,4 +253,3 @@ def lambda_handler(event, context):
         raise Exception('Unsure how to parse message')
 
     logger.info(response)
-    return json.dumps(response, default=str)
