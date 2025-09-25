@@ -8,7 +8,8 @@ import boto3
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
-from src.handle_digitized_image_trigger import get_config, lambda_handler
+from src.handle_digitized_image_trigger import (calculate_gb_needed,
+                                                get_config, lambda_handler)
 
 
 @mock_aws
@@ -19,7 +20,11 @@ def test_s3_args(mock_config):
         "AWS_REGION": "us-east-1",
         "ECS_CLUSTER": test_cluster_name,
         "ECS_SUBNET": "subnet",
-        "ECS_SECURITY_GROUP": "sg-123456789"}
+        "ECS_SECURITY_GROUP": "sg-123456789",
+        "EPHEMERAL_STORAGE_LIMIT": "198",
+        "WAIT_DELAY": "5",
+        "WAIT_MAX_ATTEMPTS": "30",
+        "EXPANSION_RATIO": "1.5"}
     client = boto3.client("ecs", region_name="us-east-1")
     client.create_cluster(clusterName=test_cluster_name)
     client.register_task_definition(
@@ -63,7 +68,11 @@ def test_sns_args(mock_execute_command, mock_config):
         "ECS_CLUSTER": test_cluster_name,
         "ECS_SUBNET": "subnet",
         "QC_ECS_SERVICE": "digitized_image_qc",
-        "ECS_SECURITY_GROUP": "sg-123456789"}
+        "ECS_SECURITY_GROUP": "sg-123456789",
+        "EPHEMERAL_STORAGE_LIMIT": "198",
+        "WAIT_DELAY": "5",
+        "WAIT_MAX_ATTEMPTS": "30",
+        "EXPANSION_RATIO": "1.5"}
     client = boto3.client("ecs", region_name="us-east-1")
     client.create_cluster(clusterName=test_cluster_name)
     client.register_task_definition(
@@ -147,3 +156,14 @@ def test_config():
         )
     config = get_config(path)
     assert config == {'foo': 'bar', 'baz': 'buzz'}
+
+
+def test_calculate_gb_needed():
+    """Asserts GB needed are correctly calculated."""
+    config = {"EXPANSION_RATIO": "1.5"}
+    for input, expected in [
+            (1000000000, 3),
+            (1900000000, 5),
+            (3900000000, 10)]:
+        output = calculate_gb_needed(config, input)
+        assert output == expected

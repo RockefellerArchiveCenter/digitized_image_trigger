@@ -8,8 +8,15 @@
 			{
 				"name": "SOURCE_FILENAME",
 				"value": "123456789.tar.gz"
+			},
+			{
+				"name": "TMP_DIR",
+				"value": "/tmp"
 			}
 		],
 		"name": "digitized_image_validation"
-	}]
+	}],
+	"ephemeralStorage": {
+		"sizeInGiB": 1
+	}
 }
