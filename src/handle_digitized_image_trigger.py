@@ -64,12 +64,26 @@ def calculate_gb_needed(object_bytes, expansion_ratio=1.0):
     return ceil(needed_bytes / (1024 ** 3))
 
 
+def use_ephemeral_storage(config, gb_needed):
+    """Helper to determine if ephemeral storage can be used."""
+    return bool(gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']))
+
+
+def get_volume_root(config, gb_needed):
+    """Helper to return root path of volume."""
+    if use_ephemeral_storage(config, gb_needed):
+        return config['EPHEMERAL_STORAGE_MOUNT_PATH']
+    else:
+        return config['EBS_STORAGE_MOUNT_PATH']
+
+
 def run_task(
         ecs_client,
         config,
         task_definition,
         environment,
-        ephemeral_storage_size):
+        gb_needed):
+    volume_configuration = []
     overrides = {
         "containerOverrides":
         [
@@ -79,9 +93,26 @@ def run_task(
             }
         ]
     }
-    if ephemeral_storage_size:
-        overrides['ephemeralStorage'] = {
-            "sizeInGiB": ephemeral_storage_size}
+    if use_ephemeral_storage(config, gb_needed):
+        overrides['ephemeralStorage'] = {"sizeInGiB": gb_needed}
+    else:
+        volume_configuration = [
+            {
+                "name": "ebs",
+                "managedEBSVolume": {
+                    "volumeType": "gp3",
+                    "sizeInGiB": gb_needed,
+                    "throughput": 125,
+                    "encrypted": True,
+                    "tagSpecifications": [
+                        {
+                            "resourceType": "volume",
+                            "propagateTags": "TASK_DEFINITION"
+                        }
+                    ]
+                }
+            }
+        ]
     response = ecs_client.run_task(
         cluster=config['ECS_CLUSTER'],
         launchType='FARGATE',
@@ -95,7 +126,8 @@ def run_task(
         taskDefinition=task_definition,
         count=1,
         startedBy='lambda/digitized_image_trigger',
-        overrides=overrides
+        overrides=overrides,
+        volumeConfigurations=volume_configuration
     )
     return ", ".join([t['taskArn'] for t in response['tasks']])
 
@@ -106,7 +138,6 @@ def handle_s3_object_put(config, ecs_client, event):
     bucket = event['Records'][0]['s3']['bucket']['name']
     object = event['Records'][0]['s3']['object']['key']
     object_bytes = event['Records'][0]['s3']['object']['size']
-    ephemeral_storage_size = None
     gb_needed = calculate_gb_needed(
         int(object_bytes),
         float(config['EXPANSION_RATIO']))
@@ -124,20 +155,19 @@ def handle_s3_object_put(config, ecs_client, event):
         {
             "name": "SOURCE_FILENAME",
             "value": object
+        },
+        {
+            "name": "TMP_DIR",
+            "value": get_volume_root(config, gb_needed)
         }
     ]
-
-    """Use ephemeral storage if possible."""
-    if gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']):
-        environment.append({"name": "TMP_DIR", "value": "/tmp"})
-        ephemeral_storage_size = gb_needed
 
     task_id = run_task(
         ecs_client,
         config,
         VALIDATION_SERVICE,
         environment,
-        ephemeral_storage_size)
+        gb_needed)
     return f"Task {task_id} with definition {VALIDATION_SERVICE} started for package {object}."
 
 
@@ -147,7 +177,6 @@ def handle_qc_approval(config, ecs_client, attributes):
     refid = attributes['refid']['Value']
     rights_ids = attributes['rights_ids']['Value']
     size = attributes['size']['Value']
-    ephemeral_storage_size = None
     gb_needed = calculate_gb_needed(int(size))
 
     logger.info(
@@ -162,20 +191,19 @@ def handle_qc_approval(config, ecs_client, attributes):
         {
             "name": "RIGHTS_IDS",
             "value": rights_ids
+        },
+        {
+            "name": "TMP_DIR",
+            "value": get_volume_root(config, gb_needed)
         }
     ]
-
-    """Use ephemeral storage if possible."""
-    if gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']):
-        environment.append({"name": "TMP_DIR", "value": "/tmp"})
-        ephemeral_storage_size = gb_needed
 
     task_id = run_task(
         ecs_client,
         config,
         PACKAGING_SERVICE,
         environment,
-        ephemeral_storage_size)
+        gb_needed)
     return f"Task {task_id} with definition {PACKAGING_SERVICE} started for package {refid}."
 
 
