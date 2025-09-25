@@ -51,16 +51,16 @@ def get_config(ssm_parameter_path):
         return configuration
 
 
-def calculate_gb_needed(config, object_bytes):
+def calculate_gb_needed(object_bytes, expansion_ratio=1.0):
     """Calculates size needed to process an object, rounded up to the nearest integer.
 
     Args:
         object_bytes (int): Size of the object in bytes.
+        expansion_ratio (float): Rate at which compressed files expand.
 
     Returns:
         gb_needed: GB needed to process the object."""
-    needed_bytes = object_bytes + \
-        (object_bytes * float(config['EXPANSION_RATIO']))
+    needed_bytes = object_bytes + (object_bytes * expansion_ratio)
     return ceil(needed_bytes / (1024 ** 3))
 
 
@@ -107,7 +107,9 @@ def handle_s3_object_put(config, ecs_client, event):
     object = event['Records'][0]['s3']['object']['key']
     object_bytes = event['Records'][0]['s3']['object']['size']
     ephemeral_storage_size = None
-    gb_needed = calculate_gb_needed(config, object_bytes)
+    gb_needed = calculate_gb_needed(
+        int(object_bytes),
+        float(config['EXPANSION_RATIO']))
 
     logger.info(
         "Running validation task for event from object {} in bucket {}".format(
@@ -124,6 +126,7 @@ def handle_s3_object_put(config, ecs_client, event):
             "value": object
         }
     ]
+
     """Use ephemeral storage if possible."""
     if gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']):
         environment.append({"name": "TMP_DIR", "value": "/tmp"})
@@ -143,6 +146,9 @@ def handle_qc_approval(config, ecs_client, attributes):
 
     refid = attributes['refid']['Value']
     rights_ids = attributes['rights_ids']['Value']
+    size = attributes['size']['Value']
+    ephemeral_storage_size = None
+    gb_needed = calculate_gb_needed(int(size))
 
     logger.info(
         "Running packaging task for event from object {}".format(
@@ -159,12 +165,17 @@ def handle_qc_approval(config, ecs_client, attributes):
         }
     ]
 
+    """Use ephemeral storage if possible."""
+    if gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']):
+        environment.append({"name": "TMP_DIR", "value": "/tmp"})
+        ephemeral_storage_size = gb_needed
+
     task_id = run_task(
         ecs_client,
         config,
         PACKAGING_SERVICE,
         environment,
-        None)
+        ephemeral_storage_size)
     return f"Task {task_id} with definition {PACKAGING_SERVICE} started for package {refid}."
 
 
