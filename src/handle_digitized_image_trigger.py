@@ -113,6 +113,7 @@ def run_task(
                 }
             }
         ]
+    print(task_definition, overrides, volume_configuration)
     response = ecs_client.run_task(
         cluster=config['ECS_CLUSTER'],
         launchType='FARGATE',
