@@ -20,6 +20,7 @@ CONFIG_DEFAULTS = {
     "ECS_SUBNET": "subnet",
     "QC_ECS_SERVICE": "digitized_image_qc",
     "EBS_STORAGE_MOUNT_PATH": "/ebs",
+    "EBS_VOLUME_ROLE": "arn:aws:iam:role/123456789",
     "ECS_SECURITY_GROUP": "sg-123456789",
     "EPHEMERAL_STORAGE_LIMIT": "198",
     "EPHEMERAL_STORAGE_MOUNT_PATH": "/tmp",

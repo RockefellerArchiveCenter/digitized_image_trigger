@@ -83,7 +83,6 @@ def run_task(
         task_definition,
         environment,
         gb_needed):
-    volume_configuration = []
     overrides = {
         "containerOverrides":
         [
@@ -93,27 +92,11 @@ def run_task(
             }
         ]
     }
+    ebs_gb_needed = 0
     if use_ephemeral_storage(config, gb_needed):
         overrides['ephemeralStorage'] = {"sizeInGiB": gb_needed}
     else:
-        volume_configuration = [
-            {
-                "name": "ebs",
-                "managedEBSVolume": {
-                    "volumeType": "gp3",
-                    "sizeInGiB": gb_needed,
-                    "throughput": 125,
-                    "encrypted": True,
-                    "tagSpecifications": [
-                        {
-                            "resourceType": "volume",
-                            "propagateTags": "TASK_DEFINITION"
-                        }
-                    ]
-                }
-            }
-        ]
-    print(task_definition, overrides, volume_configuration)
+        ebs_gb_needed = gb_needed
     response = ecs_client.run_task(
         cluster=config['ECS_CLUSTER'],
         launchType='FARGATE',
@@ -128,7 +111,24 @@ def run_task(
         count=1,
         startedBy='lambda/digitized_image_trigger',
         overrides=overrides,
-        volumeConfigurations=volume_configuration
+        volumeConfigurations=[
+            {
+                "name": "ebs",
+                "managedEBSVolume": {
+                    "volumeType": "gp3",
+                    "sizeInGiB": ebs_gb_needed,
+                    "throughput": 125,
+                    "encrypted": True,
+                    "roleArn": config['EBS_VOLUME_ROLE'],
+                    "tagSpecifications": [
+                        {
+                            "resourceType": "volume",
+                            "propagateTags": "TASK_DEFINITION"
+                        }
+                    ]
+                }
+            }
+        ]
     )
     return ", ".join([t['taskArn'] for t in response['tasks']])
 
