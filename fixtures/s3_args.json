@@ -15,8 +15,5 @@
 			}
 		],
 		"name": "digitized_image_validation"
-	}],
-	"ephemeralStorage": {
-		"sizeInGiB": 1
-	}
+	}]
 }
