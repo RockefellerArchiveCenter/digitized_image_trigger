@@ -92,7 +92,7 @@ def run_task(
             }
         ]
     }
-    ebs_gb_needed = 0
+    ebs_gb_needed = 1
     if use_ephemeral_storage(config, gb_needed):
         overrides['ephemeralStorage'] = {"sizeInGiB": gb_needed}
     else:
