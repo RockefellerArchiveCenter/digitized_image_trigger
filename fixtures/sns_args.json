@@ -8,8 +8,13 @@
 			{
 				"name": "RIGHTS_IDS",
 				"value": "1,8"
+			},
+			{
+				"name": "TMP_DIR",
+				"value": "/tmp"
 			}
 		],
 		"name": "digitized_image_packaging"
-	}]
+	}],
+	"ephemeralStorage": { "sizeInGiB": 2}
 }

@@ -24,6 +24,10 @@
               "Type": "String",
               "Value": "1,8"
             },
+            "size": {
+              "Type": "String",
+              "Value": "1000000000"
+            },
             "outcome": {
               "Type": "String",
               "Value": "SUCCESS"
