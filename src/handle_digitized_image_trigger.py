@@ -36,7 +36,8 @@ def get_config(ssm_parameter_path):
         param_details = ssm_client.get_parameters_by_path(
             Path=ssm_parameter_path,
             Recursive=False,
-            WithDecryption=True)
+            WithDecryption=True,
+            MaxResults=50)
 
         for param in param_details.get('Parameters', []):
             param_path_array = param.get('Name').split("/")
