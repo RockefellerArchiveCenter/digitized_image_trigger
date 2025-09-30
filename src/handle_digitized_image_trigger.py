@@ -28,25 +28,21 @@ def get_config(ssm_parameter_path):
         configuration (dict): all parameters found at the supplied path.
     """
     configuration = {}
+    ssm_client = boto3.client(
+        'ssm',
+        region_name=environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
     try:
-        ssm_client = boto3.client(
-            'ssm',
-            region_name=environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
-
-        param_details = ssm_client.get_parameters_by_path(
-            Path=ssm_parameter_path,
-            Recursive=False,
-            WithDecryption=True,
-            MaxResults=50)
-
-        for param in param_details.get('Parameters', []):
-            param_path_array = param.get('Name').split("/")
-            section_position = len(param_path_array) - 1
-            section_name = param_path_array[section_position]
-            configuration[section_name] = param.get('Value')
-
+        paginator = ssm_client.get_paginator('get_parameters_by_path')
+        response_iterator = paginator.paginate(
+            Path=ssm_parameter_path, WithDecryption=True)
+        for page in response_iterator:
+            for entry in page['Parameters']:
+                param_path_array = entry.get('Name').split("/")
+                section_position = len(param_path_array) - 1
+                section_name = param_path_array[section_position]
+                configuration[section_name] = entry.get('Value')
     except BaseException:
-        print("Encountered an error loading config from SSM.")
+        logging.error("Encountered an error loading config from SSM.")
         traceback.print_exc()
     finally:
         return configuration
