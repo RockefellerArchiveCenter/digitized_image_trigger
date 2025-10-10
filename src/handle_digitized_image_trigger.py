@@ -61,39 +61,12 @@ def calculate_gb_needed(object_bytes, expansion_ratio=1.0):
     return ceil(needed_bytes / (1024 ** 3))
 
 
-def use_ephemeral_storage(config, gb_needed):
-    """Helper to determine if ephemeral storage can be used."""
-    return bool(gb_needed < int(config['EPHEMERAL_STORAGE_LIMIT']))
-
-
-def get_volume_root(config, gb_needed):
-    """Helper to return root path of volume."""
-    if use_ephemeral_storage(config, gb_needed):
-        return config['EPHEMERAL_STORAGE_MOUNT_PATH']
-    else:
-        return config['EBS_STORAGE_MOUNT_PATH']
-
-
 def run_task(
         ecs_client,
         config,
         task_definition,
         environment,
         gb_needed):
-    overrides = {
-        "containerOverrides":
-        [
-            {
-                "name": task_definition,
-                "environment": environment
-            }
-        ]
-    }
-    ebs_gb_needed = 1
-    if use_ephemeral_storage(config, gb_needed) and gb_needed > 20:
-        overrides['ephemeralStorage'] = {"sizeInGiB": gb_needed}
-    else:
-        ebs_gb_needed = gb_needed
     response = ecs_client.run_task(
         cluster=config['ECS_CLUSTER'],
         launchType='FARGATE',
@@ -107,13 +80,22 @@ def run_task(
         taskDefinition=task_definition,
         count=1,
         startedBy='lambda/digitized_image_trigger',
-        overrides=overrides,
+        overrides={
+            "containerOverrides":
+            [
+                {
+                    "name": task_definition,
+                    "environment": environment
+                }
+            ]
+        },
+        propagateTags='TASK_DEFINITION',
         volumeConfigurations=[
             {
                 "name": "ebs",
                 "managedEBSVolume": {
                     "volumeType": "gp3",
-                    "sizeInGiB": ebs_gb_needed,
+                    "sizeInGiB": gb_needed,
                     "throughput": 125,
                     "encrypted": True,
                     "roleArn": config['EBS_VOLUME_ROLE'],
@@ -154,10 +136,6 @@ def handle_s3_object_put(config, ecs_client, event):
             "name": "SOURCE_FILENAME",
             "value": object
         },
-        {
-            "name": "TMP_DIR",
-            "value": get_volume_root(config, gb_needed)
-        }
     ]
 
     task_id = run_task(
@@ -190,10 +168,6 @@ def handle_qc_approval(config, ecs_client, attributes):
             "name": "RIGHTS_IDS",
             "value": rights_ids
         },
-        {
-            "name": "TMP_DIR",
-            "value": get_volume_root(config, gb_needed)
-        }
     ]
 
     task_id = run_task(
