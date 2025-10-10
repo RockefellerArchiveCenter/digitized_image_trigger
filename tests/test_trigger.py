@@ -9,9 +9,7 @@ from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 from src.handle_digitized_image_trigger import (calculate_gb_needed,
-                                                get_config, get_volume_root,
-                                                lambda_handler,
-                                                use_ephemeral_storage)
+                                                get_config, lambda_handler)
 
 CLUSTER_NAME = "default"
 CONFIG_DEFAULTS = {
@@ -169,22 +167,4 @@ def test_calculate_gb_needed():
             (1900000000, 4),
             (3900000000, 8)]:
         output = calculate_gb_needed(input)
-        assert output == expected
-
-
-def test_use_ephemeral_storage():
-    """Asserts storage type is correctly calculated."""
-    for size_gb, expected in [
-            (100, True),
-            (200, False)]:
-        output = use_ephemeral_storage(CONFIG_DEFAULTS, size_gb)
-        assert output == expected
-
-
-def test_get_volume_root():
-    """Asserts volume root is correctly calculated."""
-    for size_gb, expected in [
-            (100, CONFIG_DEFAULTS['EPHEMERAL_STORAGE_MOUNT_PATH']),
-            (200, CONFIG_DEFAULTS['EBS_STORAGE_MOUNT_PATH'])]:
-        output = get_volume_root(CONFIG_DEFAULTS, size_gb)
         assert output == expected
