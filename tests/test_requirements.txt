@@ -1,8 +1,8 @@
-boto3==1.40.37
+boto3==1.40.42
     # via
     #   -r tests/test_requirements.in
     #   moto
-botocore==1.40.37
+botocore==1.40.42
     # via
     #   boto3
     #   moto
@@ -15,7 +15,7 @@ charset-normalizer==3.4.3
     # via requests
 coverage==7.10.7
     # via -r tests/test_requirements.in
-cryptography==46.0.1
+cryptography==46.0.2
     # via moto
 idna==3.10
     # via requests
@@ -27,7 +27,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-markupsafe==3.0.2
+markupsafe==3.0.3
     # via
     #   jinja2
     #   werkzeug
@@ -47,7 +47,7 @@ python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   moto
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via responses
 requests==2.32.5
     # via

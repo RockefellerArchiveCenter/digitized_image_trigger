@@ -2,6 +2,7 @@
 
 import logging
 import traceback
+from math import ceil
 from os import environ
 
 import boto3
@@ -27,37 +28,52 @@ def get_config(ssm_parameter_path):
         configuration (dict): all parameters found at the supplied path.
     """
     configuration = {}
+    ssm_client = boto3.client(
+        'ssm',
+        region_name=environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
     try:
-        ssm_client = boto3.client(
-            'ssm',
-            region_name=environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
-
-        param_details = ssm_client.get_parameters_by_path(
-            Path=ssm_parameter_path,
-            Recursive=False,
-            WithDecryption=True)
-
-        for param in param_details.get('Parameters', []):
-            param_path_array = param.get('Name').split("/")
-            section_position = len(param_path_array) - 1
-            section_name = param_path_array[section_position]
-            configuration[section_name] = param.get('Value')
-
+        paginator = ssm_client.get_paginator('get_parameters_by_path')
+        response_iterator = paginator.paginate(
+            Path=ssm_parameter_path, WithDecryption=True)
+        for page in response_iterator:
+            for entry in page['Parameters']:
+                param_path_array = entry.get('Name').split("/")
+                section_position = len(param_path_array) - 1
+                section_name = param_path_array[section_position]
+                configuration[section_name] = entry.get('Value')
     except BaseException:
-        print("Encountered an error loading config from SSM.")
+        logging.error("Encountered an error loading config from SSM.")
         traceback.print_exc()
     finally:
         return configuration
 
 
-def run_task(ecs_client, config, task_definition, environment):
+def calculate_gb_needed(object_bytes, expansion_ratio=1.0):
+    """Calculates size needed to process an object, rounded up to the nearest integer.
+
+    Args:
+        object_bytes (int): Size of the object in bytes.
+        expansion_ratio (float): Rate at which compressed files expand.
+
+    Returns:
+        gb_needed: GB needed to process the object."""
+    needed_bytes = object_bytes + (object_bytes * expansion_ratio)
+    return ceil(needed_bytes / (1024 ** 3))
+
+
+def run_task(
+        ecs_client,
+        config,
+        task_definition,
+        environment,
+        gb_needed):
     response = ecs_client.run_task(
-        cluster=config.get('ECS_CLUSTER'),
+        cluster=config['ECS_CLUSTER'],
         launchType='FARGATE',
         networkConfiguration={
             'awsvpcConfiguration': {
-                'subnets': [config.get('ECS_SUBNET')],
-                'securityGroups': [config.get('ECS_SECURITY_GROUP')],
+                'subnets': [config['ECS_SUBNET']],
+                'securityGroups': [config['ECS_SECURITY_GROUP']],
                 'assignPublicIp': 'DISABLED'
             }
         },
@@ -65,13 +81,33 @@ def run_task(ecs_client, config, task_definition, environment):
         count=1,
         startedBy='lambda/digitized_image_trigger',
         overrides={
-            'containerOverrides': [
+            "containerOverrides":
+            [
                 {
                     "name": task_definition,
                     "environment": environment
                 }
             ]
-        }
+        },
+        propagateTags='TASK_DEFINITION',
+        volumeConfigurations=[
+            {
+                "name": "ebs",
+                "managedEBSVolume": {
+                    "volumeType": "gp3",
+                    "sizeInGiB": gb_needed,
+                    "throughput": 125,
+                    "encrypted": True,
+                    "roleArn": config['EBS_VOLUME_ROLE'],
+                    "tagSpecifications": [
+                        {
+                            "resourceType": "volume",
+                            "propagateTags": "TASK_DEFINITION"
+                        }
+                    ]
+                }
+            }
+        ]
     )
     return ", ".join([t['taskArn'] for t in response['tasks']])
 
@@ -81,6 +117,10 @@ def handle_s3_object_put(config, ecs_client, event):
 
     bucket = event['Records'][0]['s3']['bucket']['name']
     object = event['Records'][0]['s3']['object']['key']
+    object_bytes = event['Records'][0]['s3']['object']['size']
+    gb_needed = calculate_gb_needed(
+        int(object_bytes),
+        float(config['EXPANSION_RATIO']))
 
     logger.info(
         "Running validation task for event from object {} in bucket {}".format(
@@ -95,14 +135,15 @@ def handle_s3_object_put(config, ecs_client, event):
         {
             "name": "SOURCE_FILENAME",
             "value": object
-        }
+        },
     ]
 
     task_id = run_task(
         ecs_client,
         config,
         VALIDATION_SERVICE,
-        environment)
+        environment,
+        gb_needed)
     return f"Task {task_id} with definition {VALIDATION_SERVICE} started for package {object}."
 
 
@@ -111,6 +152,8 @@ def handle_qc_approval(config, ecs_client, attributes):
 
     refid = attributes['refid']['Value']
     rights_ids = attributes['rights_ids']['Value']
+    size = attributes['size']['Value']
+    gb_needed = calculate_gb_needed(int(size))
 
     logger.info(
         "Running packaging task for event from object {}".format(
@@ -124,14 +167,15 @@ def handle_qc_approval(config, ecs_client, attributes):
         {
             "name": "RIGHTS_IDS",
             "value": rights_ids
-        }
+        },
     ]
 
     task_id = run_task(
         ecs_client,
         config,
         PACKAGING_SERVICE,
-        environment)
+        environment,
+        gb_needed)
     return f"Task {task_id} with definition {PACKAGING_SERVICE} started for package {refid}."
 
 
@@ -140,14 +184,14 @@ def handle_validation_approval(config, ecs_client, attributes):
     refid = attributes['refid']['Value']
 
     resp = ecs_client.describe_services(
-        cluster=config.get('ECS_CLUSTER'),
-        services=[config.get('QC_ECS_SERVICE')])
+        cluster=config['ECS_CLUSTER'],
+        services=[config['QC_ECS_SERVICE']])
     if (len(resp['services']) and resp['services']
             [0]['desiredCount'] < 1):
         logger.info("Scaling up QC service.")
         resp = ecs_client.update_service(
-            cluster=config.get('ECS_CLUSTER'),
-            service=config.get('QC_ECS_SERVICE'),
+            cluster=config['ECS_CLUSTER'],
+            service=config['QC_ECS_SERVICE'],
             desiredCount=1)
         service = resp['service']
     else:
@@ -156,17 +200,17 @@ def handle_validation_approval(config, ecs_client, attributes):
 
     waiter = ecs_client.get_waiter('services_stable')
     waiter.wait(
-        cluster=config.get('ECS_CLUSTER'),
-        services=[config.get('QC_ECS_SERVICE')],
+        cluster=config['ECS_CLUSTER'],
+        services=[config['QC_ECS_SERVICE']],
         WaiterConfig={
-            'Delay': 5,  # Poll every 5 seconds
-            'MaxAttempts': 30  # Maximum 30 attempts
+            'Delay': int(config['WAIT_DELAY']),
+            'MaxAttempts': int(config['WAIT_MAX_ATTEMPTS'])
         }
     )
 
     tasks = ecs_client.list_tasks(
-        cluster=config.get('ECS_CLUSTER'),
-        serviceName=config.get('QC_ECS_SERVICE'),
+        cluster=config['ECS_CLUSTER'],
+        serviceName=config['QC_ECS_SERVICE'],
         desiredStatus='RUNNING')
 
     task_arn = tasks['taskArns'][0]
@@ -197,8 +241,8 @@ def handle_qc_complete(config, ecs_client):
     logger.info("Scaling down QC service.")
 
     ecs_client.update_service(
-        cluster=config.get('ECS_CLUSTER'),
-        service=config.get('QC_ECS_SERVICE'),
+        cluster=config['ECS_CLUSTER'],
+        service=config['QC_ECS_SERVICE'],
         desiredCount=0)
 
     return "QC service scaled down."

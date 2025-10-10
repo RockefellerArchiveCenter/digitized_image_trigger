@@ -8,20 +8,31 @@ import boto3
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
-from src.handle_digitized_image_trigger import get_config, lambda_handler
+from src.handle_digitized_image_trigger import (calculate_gb_needed,
+                                                get_config, lambda_handler)
+
+CLUSTER_NAME = "default"
+CONFIG_DEFAULTS = {
+    "AWS_REGION": "us-east-1",
+    "ECS_CLUSTER": "default",
+    "ECS_SUBNET": "subnet",
+    "QC_ECS_SERVICE": "digitized_image_qc",
+    "EBS_STORAGE_MOUNT_PATH": "/ebs",
+    "EBS_VOLUME_ROLE": "arn:aws:iam:role/123456789",
+    "ECS_SECURITY_GROUP": "sg-123456789",
+    "EPHEMERAL_STORAGE_LIMIT": "198",
+    "EPHEMERAL_STORAGE_MOUNT_PATH": "/tmp",
+    "WAIT_DELAY": "5",
+    "WAIT_MAX_ATTEMPTS": "30",
+    "EXPANSION_RATIO": "1.5"}
 
 
 @mock_aws
 @patch('src.handle_digitized_image_trigger.get_config')
 def test_s3_args(mock_config):
-    test_cluster_name = "default"
-    mock_config.return_value = {
-        "AWS_REGION": "us-east-1",
-        "ECS_CLUSTER": test_cluster_name,
-        "ECS_SUBNET": "subnet",
-        "ECS_SECURITY_GROUP": "sg-123456789"}
+    mock_config.return_value = CONFIG_DEFAULTS
     client = boto3.client("ecs", region_name="us-east-1")
-    client.create_cluster(clusterName=test_cluster_name)
+    client.create_cluster(clusterName=CLUSTER_NAME)
     client.register_task_definition(
         family="digitized_image_validation",
         containerDefinitions=[
@@ -38,11 +49,11 @@ def test_s3_args(mock_config):
         message = json.load(df)
         lambda_handler(message, None)
 
-        tasks = client.list_tasks(cluster=test_cluster_name)
+        tasks = client.list_tasks(cluster=CLUSTER_NAME)
         assert len(tasks['taskArns']) == 1
 
         task_response = client.describe_tasks(
-            cluster=test_cluster_name,
+            cluster=CLUSTER_NAME,
             tasks=[tasks['taskArns'][0]])
 
         assert task_response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
@@ -57,15 +68,9 @@ def test_s3_args(mock_config):
 @patch('src.handle_digitized_image_trigger.get_config')
 @patch('src.handle_digitized_image_trigger.execute_service_command')
 def test_sns_args(mock_execute_command, mock_config):
-    test_cluster_name = "default"
-    mock_config.return_value = {
-        "AWS_REGION": "us-east-1",
-        "ECS_CLUSTER": test_cluster_name,
-        "ECS_SUBNET": "subnet",
-        "QC_ECS_SERVICE": "digitized_image_qc",
-        "ECS_SECURITY_GROUP": "sg-123456789"}
+    mock_config.return_value = CONFIG_DEFAULTS
     client = boto3.client("ecs", region_name="us-east-1")
-    client.create_cluster(clusterName=test_cluster_name)
+    client.create_cluster(clusterName=CLUSTER_NAME)
     client.register_task_definition(
         family="digitized_image_packaging",
         containerDefinitions=[
@@ -78,7 +83,7 @@ def test_sns_args(mock_execute_command, mock_config):
         ],
     )
     client.create_service(
-        cluster=test_cluster_name,
+        cluster=CLUSTER_NAME,
         serviceName='digitized_image_qc'
     )
 
@@ -86,11 +91,11 @@ def test_sns_args(mock_execute_command, mock_config):
         message = json.load(df)
         lambda_handler(message, None)
 
-        tasks = client.list_tasks(cluster=test_cluster_name)
+        tasks = client.list_tasks(cluster=CLUSTER_NAME)
         assert len(tasks['taskArns']) == 1
 
         task_response = client.describe_tasks(
-            cluster=test_cluster_name,
+            cluster=CLUSTER_NAME,
             tasks=[tasks['taskArns'][0]])
 
         assert task_response['tasks'][0]['startedBy'] == 'lambda/digitized_image_trigger'
@@ -104,7 +109,7 @@ def test_sns_args(mock_execute_command, mock_config):
         message = json.load(df)
         lambda_handler(message, None)
 
-        tasks = client.list_tasks(cluster=test_cluster_name)
+        tasks = client.list_tasks(cluster=CLUSTER_NAME)
         assert len(tasks['taskArns']) == 1
 
     with open(Path('fixtures', 'sns_valid.json'), 'r') as df:
@@ -147,3 +152,19 @@ def test_config():
         )
     config = get_config(path)
     assert config == {'foo': 'bar', 'baz': 'buzz'}
+
+
+def test_calculate_gb_needed():
+    """Asserts GB needed are correctly calculated."""
+    for input, expected in [
+            (1000000000, 3),
+            (1900000000, 5),
+            (3900000000, 10)]:
+        output = calculate_gb_needed(input, 1.5)
+        assert output == expected
+    for input, expected in [
+            (1000000000, 2),
+            (1900000000, 4),
+            (3900000000, 8)]:
+        output = calculate_gb_needed(input)
+        assert output == expected
