@@ -48,7 +48,7 @@ def get_config(ssm_parameter_path):
         return configuration
 
 
-def calculate_gb_needed(object_bytes, expansion_ratio=1.0):
+def calculate_gb_needed(object_bytes, expansion_ratio=2.0):
     """Calculates size needed to process an object, rounded up to the nearest integer.
 
     Args:
