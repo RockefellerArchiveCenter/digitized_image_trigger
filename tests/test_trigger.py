@@ -163,8 +163,8 @@ def test_calculate_gb_needed():
         output = calculate_gb_needed(input, 1.5)
         assert output == expected
     for input, expected in [
-            (1000000000, 2),
-            (1900000000, 4),
-            (3900000000, 8)]:
+            (1000000000, 3),
+            (1900000000, 6),
+            (3900000000, 11)]:
         output = calculate_gb_needed(input)
         assert output == expected
