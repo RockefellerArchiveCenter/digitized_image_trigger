@@ -218,6 +218,7 @@ def handle_validation_approval(config, ecs_client, attributes):
     execute_service_command(
         ecs_client,
         service['clusterArn'],
+        config['ECS_CONTAINER_NAME'],
         f'python manage.py discover_packages {refid}',
         True,
         task_arn)
@@ -227,10 +228,11 @@ def handle_validation_approval(config, ecs_client, attributes):
 
 
 def execute_service_command(
-        ecs_client, cluster, command, interactive, task_arn):
+        ecs_client, cluster, container, command, interactive, task_arn):
     """Executes a command in a running service."""
     ecs_client.execute_command(
         cluster=cluster,
+        container=container,
         command=command,
         interactive=interactive,
         task=task_arn)
