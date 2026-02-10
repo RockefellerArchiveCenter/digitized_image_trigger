@@ -15,6 +15,7 @@ CLUSTER_NAME = "default"
 CONFIG_DEFAULTS = {
     "AWS_REGION": "us-east-1",
     "ECS_CLUSTER": "default",
+    "ECS_CONTAINER_NAME": "digitized_image_qc",
     "ECS_SUBNET": "subnet",
     "QC_ECS_SERVICE": "digitized_image_qc",
     "EBS_STORAGE_MOUNT_PATH": "/ebs",
@@ -123,6 +124,7 @@ def test_sns_args(mock_execute_command, mock_config):
         mock_execute_command.assert_called_once_with(
             ANY,
             created['services'][0]['clusterArn'],
+            'digitized_image_qc',
             'python manage.py discover_packages 20f8da26e268418ead4aa2365f816a08',
             True,
             ANY)
