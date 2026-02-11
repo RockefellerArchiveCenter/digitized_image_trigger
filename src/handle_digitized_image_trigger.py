@@ -151,6 +151,7 @@ def handle_qc_approval(config, ecs_client, attributes):
     """Handles QC approval of package."""
 
     refid = attributes['refid']['Value']
+    package_id = attributes['package_id']['Value']
     rights_ids = attributes['rights_ids']['Value']
     size = attributes['size']['Value']
     gb_needed = calculate_gb_needed(int(size))
@@ -163,6 +164,10 @@ def handle_qc_approval(config, ecs_client, attributes):
         {
             "name": "REFID",
             "value": refid
+        },
+        {
+            "name": "PACKAGE_ID",
+            "value": package_id
         },
         {
             "name": "RIGHTS_IDS",
@@ -182,6 +187,8 @@ def handle_qc_approval(config, ecs_client, attributes):
 def handle_validation_approval(config, ecs_client, attributes):
     """Scales up ECS Service when items are waiting for QC"""
     refid = attributes['refid']['Value']
+    package_id = attributes['package_id']['Value']
+    source_filename = attributes['source_filename']['Value']
 
     resp = ecs_client.describe_services(
         cluster=config['ECS_CLUSTER'],
@@ -219,7 +226,7 @@ def handle_validation_approval(config, ecs_client, attributes):
         ecs_client,
         service['clusterArn'],
         config['ECS_CONTAINER_NAME'],
-        f'python manage.py discover_packages {refid}',
+        f'python manage.py discover_packages {refid} {package_id} {source_filename}',
         True,
         task_arn)
 
