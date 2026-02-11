@@ -21,9 +21,11 @@ The script is designed to consume messages from an AWS S3 Bucket or an AWS Simpl
 SNS messages are expected have the following attributes:
 - `format` - the format of the package (audio or video)
 - `refid` - the ArchivesSpace refid associated with the package
+- `package_id` - a unique identifier for the package
 - `service` - the service which produced the message
 - `outcome` - the outcome of the service (usually `SUCCESS` or `FAILURE`, but may also be `COMPLETE`)
-- `message` - - a detailed message about the service outcome (optional)
+- `source_filename` - the original filename of the uploaded object (optional)
+- `message` - a detailed message about the service outcome (optional)
 - `rights_ids` - rights IDs associated with the package (optional)
 
 ### Configured Actions
