@@ -230,7 +230,8 @@ def handle_validation_approval(config, ecs_client, attributes):
         True,
         task_arn)
 
-    logger.info("Package discovery command executed.")
+    logger.info(
+        f"Package discovery command executed for refid {refid} with package id {package_id} and source filename {source_filename} in task {task_arn}.")
     return "QC service started and package discovered."
 
 
