@@ -189,6 +189,7 @@ def handle_validation_approval(config, ecs_client, attributes):
     refid = attributes['refid']['Value']
     package_id = attributes['package_id']['Value']
     source_filename = attributes['source_filename']['Value']
+    size = attributes['size']['Value']
 
     resp = ecs_client.describe_services(
         cluster=config['ECS_CLUSTER'],
@@ -226,7 +227,7 @@ def handle_validation_approval(config, ecs_client, attributes):
         ecs_client,
         service['clusterArn'],
         config['ECS_CONTAINER_NAME'],
-        f'python manage.py discover_packages {refid} {package_id} {source_filename}',
+        f'python manage.py discover_packages {refid} {package_id} {source_filename} {size}',
         True,
         task_arn)
 
