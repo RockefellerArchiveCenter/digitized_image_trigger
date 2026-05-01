@@ -125,7 +125,7 @@ def test_sns_args(mock_execute_command, mock_config):
             ANY,
             created['services'][0]['clusterArn'],
             'digitized_image_qc',
-            'python manage.py discover_packages 20f8da26e268418ead4aa2365f816a08 0f880ce8-a9fa-401e-b954-2d1e7e9a91c6 R898/20f8da26e268418ead4aa2365f816a08.tar.gz',
+            'python manage.py discover_packages 20f8da26e268418ead4aa2365f816a08 0f880ce8-a9fa-401e-b954-2d1e7e9a91c6 R898/20f8da26e268418ead4aa2365f816a08.tar.gz 1000000000',
             True,
             ANY)
 

@@ -24,6 +24,10 @@
               "Type": "String",
               "Value": "R898/20f8da26e268418ead4aa2365f816a08.tar.gz"
             },
+            "size": {
+              "Type": "String",
+              "Value": "1000000000"
+            },
             "service": {
               "Type": "String",
               "Value": "digitized_image_validation"
