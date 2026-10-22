@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.1](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/compare/v1.0.0...v1.0.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* update pip ([3185f87](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/3185f874b62bbeba051c89da01c4e96de881c003))
+* update pip ([3185f87](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/3185f874b62bbeba051c89da01c4e96de881c003))
+* update pip ([3b80235](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/3b8023562aa4f5ceebd4fe4095bce1545e2703d5))
+* update pip ([3b80235](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/3b8023562aa4f5ceebd4fe4095bce1545e2703d5))
+* update pip ([818c046](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/818c046551978828ce564f51cf48172239ad7447))
+
 ## 1.0.0 (2026-06-25)
 
 
