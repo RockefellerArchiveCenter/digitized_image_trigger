@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.2](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/compare/v1.0.1...v1.0.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** Scheduled dependency updates ([2427133](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/2427133a9e4ba5ecb66c93952538e67ea78e0186))
+* **deps:** Scheduled dependency updates ([2427133](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/2427133a9e4ba5ecb66c93952538e67ea78e0186))
+* **deps:** Scheduled dependency updates ([9785a95](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/9785a95faf3e99889039624ab2a994df862dfb41))
+* **deps:** Scheduled dependency updates ([9785a95](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/9785a95faf3e99889039624ab2a994df862dfb41))
+* **deps:** Scheduled dependency updates ([92c9453](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/commit/92c9453a3eacac3dd0b0a5f32ba8acaa4c412b3e))
+
 ## [1.0.1](https://github.com/RockefellerArchiveCenter/digitized_image_trigger/compare/v1.0.0...v1.0.1) (2026-10-22)
 
 
